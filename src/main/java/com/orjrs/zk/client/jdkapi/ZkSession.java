@@ -28,7 +28,6 @@ public class ZkSession {
     /**
      * 获得session的方式，这种方式可能会在ZooKeeper还没有获得连接的时候就已经对ZK进行访问了
      */
-    @Test
     public void createSession() {
         try {
 
@@ -52,7 +51,6 @@ public class ZkSession {
     }
 
 
-    @Test
     public void createSession2() throws Exception {
         ZooKeeper zookeeper = new ZooKeeper(SERVER_ADDR, SESSION_TIMEOUT, event -> {
             if (event.getState() == Watcher.Event.KeeperState.SyncConnected) {
