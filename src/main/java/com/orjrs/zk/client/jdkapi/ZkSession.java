@@ -53,7 +53,7 @@ public class ZkSession {
 
 
     @Test
-    public void createSeesion2() throws Exception {
+    public void createSession2() throws Exception {
         ZooKeeper zookeeper = new ZooKeeper(SERVER_ADDR, SESSION_TIMEOUT, event -> {
             if (event.getState() == Watcher.Event.KeeperState.SyncConnected) {
                 // 确认已经连接完毕后再进行操作
