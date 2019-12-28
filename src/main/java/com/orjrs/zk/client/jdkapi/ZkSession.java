@@ -5,6 +5,7 @@ import org.apache.zookeeper.*;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.util.concurrent.CountDownLatch;
 
 /**
  * 创建zK会话
@@ -20,6 +21,9 @@ public class ZkSession {
 
     /** ZK会话超时时间 */
     private static final int SESSION_TIMEOUT = 200;
+
+    /** 发令枪 */
+    private CountDownLatch countDownLatch = new CountDownLatch(1);
 
     /**
      * 获得session的方式，这种方式可能会在ZooKeeper还没有获得连接的时候就已经对ZK进行访问了
@@ -45,5 +49,21 @@ public class ZkSession {
         } catch (IOException e) {
             log.info("创建ZK session IOException： {}", e.getMessage());
         }
+    }
+
+
+    @Test
+    public void createSeesion2() throws Exception {
+        ZooKeeper zookeeper = new ZooKeeper(SERVER_ADDR, SESSION_TIMEOUT, event -> {
+            if (event.getState() == Watcher.Event.KeeperState.SyncConnected) {
+                // 确认已经连接完毕后再进行操作
+                countDownLatch.countDown();
+                log.info("zookeeper已经获得了连接");
+            }
+            log.info("zookeeper");
+            System.out.println(String.format("event! type=%s, stat=%s, path=%s", event.getType(),
+                    event.getState(), event.getPath()));
+        });
+        countDownLatch.await();
     }
 }
