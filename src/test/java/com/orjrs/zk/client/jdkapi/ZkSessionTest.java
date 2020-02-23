@@ -2,8 +2,6 @@ package com.orjrs.zk.client.jdkapi;
 
 import org.junit.Test;
 
-import static org.junit.Assert.*;
-
 /**
  * @author orjrs
  * @create 2019-12-28 17:45
@@ -12,15 +10,15 @@ import static org.junit.Assert.*;
 public class ZkSessionTest {
 
     @Test
-    public void createSession() {
+    public void createSession1() {
 
-        ZkSession zkSession = new ZkSession();
-        zkSession.createSession();
+        ZkSession zkSessionDemo = new ZkSession();
+        zkSessionDemo.createSession1();
     }
 
     @Test
-    public void createSession2() throws Exception {
-        ZkSession zkSession = new ZkSession();
-        zkSession.createSession2();
+    public void createSession() throws Exception {
+        ZkSession zkSessionDemo = new ZkSession();
+        zkSessionDemo.createSession();
     }
 }

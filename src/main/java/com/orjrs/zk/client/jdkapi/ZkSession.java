@@ -28,7 +28,7 @@ public class ZkSession {
     /**
      * 获得session的方式，这种方式可能会在ZooKeeper还没有获得连接的时候就已经对ZK进行访问了
      */
-    public void createSession() {
+    public void createSession1() {
         try {
 
             // 这里watcher不能为空
@@ -51,7 +51,7 @@ public class ZkSession {
     }
 
 
-    public void createSession2() throws Exception {
+    public void createSession() throws Exception {
         ZooKeeper zookeeper = new ZooKeeper(SERVER_ADDR, SESSION_TIMEOUT, event -> {
             if (event.getState() == Watcher.Event.KeeperState.SyncConnected) {
                 // 确认已经连接完毕后再进行操作
