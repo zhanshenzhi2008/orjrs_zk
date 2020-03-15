@@ -1,14 +1,6 @@
 package com.orjrs.zk.client.jdkapi;
 
-import org.apache.zookeeper.ZooDefs;
-import org.apache.zookeeper.data.ACL;
-import org.junit.Assert;
 import org.junit.Test;
-
-import java.util.ArrayList;
-import java.util.List;
-
-import static org.junit.Assert.*;
 
 /**
  * @author orjrs
@@ -24,7 +16,7 @@ public class ZkAuthWatcherTest {
     @Test
     public void test() {
         ZkAuthWatcher zkAuthWatcher = new ZkAuthWatcher();
-        zkAuthWatcher.authZk();
+        zkAuthWatcher.authZkTest();
     }
 
 }

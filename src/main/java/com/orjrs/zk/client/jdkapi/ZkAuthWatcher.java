@@ -3,6 +3,7 @@ package com.orjrs.zk.client.jdkapi;
 import lombok.extern.log4j.Log4j2;
 import org.apache.logging.log4j.util.Strings;
 import org.apache.zookeeper.*;
+import org.apache.zookeeper.data.Stat;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -25,6 +26,9 @@ public class ZkAuthWatcher implements Watcher {
     /** ZK会话超时时间 */
     private static final int SESSION_TIMEOUT = 10000;
 
+    /** ZK会话超时时间 */
+    private static final int VERSION = -1;
+
     /** 同步器 */
     private CountDownLatch countDownLatch = new CountDownLatch(1);
 
@@ -33,6 +37,11 @@ public class ZkAuthWatcher implements Watcher {
 
     /** 标识 */
     private static final String LOG_PREFIX_OF_MAIN = "【ZK_AUTH】";
+
+    /** 路径 */
+    private static final String PATH = "/orjrs_auth";
+    /** 路径 */
+    private static final String PATH_DEL = "/orjrs_auth/deleteNode";
 
     /** zk 会话 */
     private ZooKeeper zk = null;
@@ -73,13 +82,13 @@ public class ZkAuthWatcher implements Watcher {
     }
 
     /**
-     * 创建连接
+     * 创建连接-授权
      *
      * @param host    连接地址
      * @param timeOut 超时时间
      */
     public void createConnection(String host, long timeOut) {
-        releaseConnection();
+        closeConnection();
         try {
             zk = new ZooKeeper(SERVER_ADDR, SESSION_TIMEOUT, this);
             //添加节点授权
@@ -96,7 +105,7 @@ public class ZkAuthWatcher implements Watcher {
     /**
      * 关闭ZK连接
      */
-    public void releaseConnection() {
+    public void closeConnection() {
         if (null != this.zk) {
             try {
                 this.zk.close();
@@ -151,7 +160,8 @@ public class ZkAuthWatcher implements Watcher {
                     newZk = new ZooKeeper(SERVER_ADDR, SESSION_TIMEOUT, this);
                     // 授权
                     newZk.addAuthInfo(AUTH_TYPE, key.getBytes());
-                    result = Arrays.toString(newZk.getData(path, false, null));
+                    Thread.sleep(1000);
+                    result = new String(newZk.getData(path, false, null));
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
@@ -177,12 +187,53 @@ public class ZkAuthWatcher implements Watcher {
      */
     public void deletePath(String path) {
         try {
-            this.zk.delete(path, -1);
+            this.zk.delete(path, VERSION);
             log.info("删除节点信息成功:{}", path);
         } catch (KeeperException e) {
             log.info("删除{}节点信息KeeperException：{}", path, e.getMessage());
         } catch (InterruptedException e) {
             log.info("删除{}节点信息InterruptedException：{}", path, e.getMessage());
+        }
+    }
+
+    /**
+     * 授权删除节点信息
+     *
+     * @param path 路径
+     * @param key  密钥
+     */
+    public void deletePathByAuth(String path, String key) {
+        try {
+            if (Strings.isNotBlank(key) && !CORRECT_AUTH_KEY.equals(key)) {
+                // 重新创建个连接
+                ZooKeeper newZk = null;
+                try {
+                    newZk = new ZooKeeper(SERVER_ADDR, SESSION_TIMEOUT, this);
+                    // 授权
+                    newZk.addAuthInfo(AUTH_TYPE, key.getBytes());
+                    Thread.sleep(1000);
+                    Stat stat = newZk.exists(path, false);
+                    if (stat != null) {
+                        newZk.delete(path, VERSION);
+                        log.info("使用授权key={},删除节点信息成功:{}", key, path);
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            } else {
+                // 默认的
+                Stat stat = this.zk.exists(path, false);
+                if (stat != null) {
+                    this.zk.delete(path, VERSION);
+                    key = CORRECT_AUTH_KEY;
+                    log.info("使用授权key={},删除节点信息成功:{}", key, path);
+                }
+            }
+
+        } catch (KeeperException e) {
+            log.info("key={}, 删除{}节点信息KeeperException：{}", key, path, e.getMessage());
+        } catch (InterruptedException e) {
+            log.info("key={}, 删除{}节点信息InterruptedException：{}", key, path, e.getMessage());
         }
     }
 
@@ -194,7 +245,7 @@ public class ZkAuthWatcher implements Watcher {
      */
     public void writePath(String path, String data) {
         try {
-            this.zk.setData(path, data.getBytes(), -1);
+            this.zk.setData(path, data.getBytes(), VERSION);
             log.info("修改节点信息成功:{}={}", path, data);
         } catch (KeeperException e) {
             log.info("修改{}节点信息KeeperException：{}", path, e.getMessage());
@@ -203,20 +254,83 @@ public class ZkAuthWatcher implements Watcher {
         }
     }
 
-    public void authZk() {
+    /**
+     * 修改节点信息
+     *
+     * @param path 路径
+     * @param data 数据
+     * @param key  密钥
+     */
+    public void writePathByAuth(String path, String data, String key) {
+        try {
+            if (Strings.isNotBlank(key) && !CORRECT_AUTH_KEY.equals(key)) {
+                // 重新创建个连接
+                ZooKeeper newZk = null;
+                try {
+                    newZk = new ZooKeeper(SERVER_ADDR, SESSION_TIMEOUT, this);
+                    // 授权
+                    newZk.addAuthInfo(AUTH_TYPE, key.getBytes());
+                    Thread.sleep(1000);
+                    Stat stat = newZk.exists(path, false);
+                    if (stat != null) {
+                        newZk.setData(path, data.getBytes(), VERSION);
+                        log.info("使用授权key={},data={},修改节点信息成功:{}", key, data, path);
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            } else {
+                // 默认的
+                Stat stat = this.zk.exists(path, false);
+                if (stat != null) {
+                    this.zk.setData(path, data.getBytes(), VERSION);
+                    key = CORRECT_AUTH_KEY;
+                    log.info("使用授权key={},data={},修改节点信息成功:{}", key, data, path);
+                }
+            }
+        } catch (KeeperException e) {
+            log.info("key={},修改{}节点信息KeeperException：{}", key, path, e.getMessage());
+        } catch (InterruptedException e) {
+            log.info("key={}, 修改{}节点信息InterruptedException：{}", key, path, e.getMessage());
+        }
+    }
+
+    public void authZkTest() {
         // 创建连接
         createConnection();
 
         // 创建节点
-        String path = "/orjrs_auth";
-        createPath(path, "init content");
+
+        createPath(PATH, "init content");
+
+        // 获取：使用正确的授权方式 默认的
+        readPathByAuth(PATH, null);
+        // readPathByAuth(PATH, CORRECT_AUTH_KEY);
+        // 获取：不使用的授权方式
+        readPathByAuth(PATH, "");
+        // 获取：使用错误的授权方式
+        readPathByAuth(PATH, BAD_AUTH_KEY);
+
         // 创建子节点
-        createPath(path + "/deleteNode", "will be deleted");
-        // 使用正确的授权方式 默认的
-        //readPathByAuth(path, null);
-        // 不使用的授权方式
-        readPathByAuth(path, "");
-        // 使用错误的授权方式
-        readPathByAuth(path, BAD_AUTH_KEY);
+        // 更新：使用正确的授权方式 默认的
+        writePathByAuth(PATH, "使用正确的授权方式修改", null);
+        // writePathByAuth(PATH, "使用正确的授权方式修改", CORRECT_AUTH_KEY);
+        // 更新：不使用的授权方式
+        writePathByAuth(PATH, "不使用的授权方式修改", "");
+        // 更新：使用错误的授权方式
+        writePathByAuth(PATH, "使用错误的授权方式修改", null);
+
+        // 创建子节点
+        createPath(PATH_DEL, "will be deleted");
+        // 删除：使用正确的授权方式 默认的
+        deletePathByAuth(PATH_DEL, null);
+        //deletePathByAuth(PATH_DEL, CORRECT_AUTH_KEY);
+        // 删除：不使用的授权方式
+        deletePathByAuth(PATH_DEL, "");
+        // 删除：使用错误的授权方式
+        deletePathByAuth(PATH_DEL, BAD_AUTH_KEY);
+
+        // 关闭连接
+        closeConnection();
     }
 }
